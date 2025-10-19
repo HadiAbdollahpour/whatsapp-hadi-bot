@@ -1,7 +1,7 @@
 {
   "name": "whatsapp-hadi-bot",
   "version": "1.0.0",
-  "description": "WhatsApp bot for HadiCuphoria store using whatsapp-web.js",
+  "description": "WhatsApp bot for HadiCuphoria using whatsapp-web.js",
   "main": "index.js",
   "type": "module",
   "scripts": {
