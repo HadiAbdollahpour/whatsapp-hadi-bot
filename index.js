@@ -1,53 +1,37 @@
-// HadiCuphoria WhatsApp Bot
+// index.js
 import pkg from 'whatsapp-web.js';
-import qrcode from 'qrcode-terminal';
-import { createObjectCsvWriter } from 'csv-writer';
 import fs from 'fs';
+import qrcode from 'qrcode';
+import csvWriter from 'csv-writer';
 
 const { Client, LocalAuth } = pkg;
 
-// ربات واتساپ با ذخیره احراز در پوشه session
 const client = new Client({
-  authStrategy: new LocalAuth(),
-  puppeteer: { headless: true, args: ['--no-sandbox'] }
+  authStrategy: new LocalAuth(), // keeps session even after restart
 });
 
-// اگر فایل CSV نیست درستش کن
-const csvWriter = createObjectCsvWriter({
-  path: 'orders.csv',
-  header: [
-    { id: 'name', title: 'نام' },
-    { id: 'order', title: 'سفارش' },
-    { id: 'time', title: 'زمان' }
-  ],
-  append: true
+client.on('qr', async (qr) => {
+  const dataUrl = await qrcode.toDataURL(qr);
+  console.log('📱 واتساپ خود را با این QR اسکن کن (کپی کن داخل مرورگر تا تصویر کامل ببینی):');
+  console.log(dataUrl);
 });
 
-// تولید QR در ترمینال
-client.on('qr', qr => {
-  qrcode.generate(qr, { small: true });
-  console.log('📱 واتساپ خود را با این QR اسکن کن');
+client.on('ready', () => {
+  console.log('✅ Client is ready! ربات واتساپ فعال شد.');
 });
 
-// وقتی احراز هویت شد
-client.on('ready', () => console.log('✅ ربات واتساپ فعال شد.'));
+client.on('message', async (message) => {
+  const content = message.body;
+  const from = message.from;
 
-// وقتی پیام رسید
-client.on('message', async msg => {
-  if (msg.body.startsWith('/start')) {
-    msg.reply('سلام 👋 به ربات فروشگاه لوازم یکبار مصرف و قنادی هادی خوش آمدید.');
-    return;
-  }
+  // ذخیره در CSV
+  const path = 'orders.csv';
+  const line = `${new Date().toISOString()},${from},${JSON.stringify(content)}\n`;
+  fs.appendFileSync(path, line);
+  console.log('سفارش ذخیره شد:', content);
 
-  // ذخیره پیام به عنوان سفارش
-  const orderData = [{
-    name: msg._data.notifyName || msg.from,
-    order: msg.body,
-    time: new Date().toLocaleString('fa-IR')
-  }];
-
-  await csvWriter.writeRecords(orderData);
-  msg.reply('✅ سفارش شما ذخیره شد، ممنون از خرید شما 🍰');
+  // پاسخ خودکار ساده
+  await message.reply('سفارش دریافت شد ✅');
 });
 
 client.initialize();
